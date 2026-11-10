@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.example.cdc</groupId>
+        <artifactId>incremental-snapshot-cdc</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>cdc-test</artifactId>
+    <packaging>jar</packaging>
+    <name>cdc-test</name>
+    <description>
+        Cross-module integration suite: concurrent writes during a snapshot, checkpoint
+        recovery, collation-safe chunk boundaries and full-table final consistency; plus
+        an environment-gated real MySQL integration test.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.example.cdc</groupId>
+            <artifactId>cdc-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.example.cdc</groupId>
+            <artifactId>cdc-connector-mysql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test (JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      - name: Build and run all tests
+        run: mvn -B -ntp clean verify
+
+      # "compile AND run" is an explicit requirement: execute the standalone,
+      # self-verifying demo both from classes and from the packaged jar.
+      - name: Run incremental snapshot demo
+        run: java -cp cdc-core/target/classes org.example.cdc.core.demo.IncrementalSnapshotDemo
+
+      - name: Run packaged demo jar
+        run: java -jar cdc-core/target/cdc-core-*.jar
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-jdk${{ matrix.java }}
+          path: '**/target/surefire-reports/*'
+          if-no-files-found: ignore
+
+  # Opt-in job: real MySQL 8 end-to-end test. Kept out of the default build so
+  # the matrix above stays fast and deterministic; trigger via workflow_dispatch.
+  mysql-integration:
+    name: Real MySQL 8 Integration
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: cdc_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run full build incl. real MySQL integration test
+        env:
+          MYSQL_URL: 'jdbc:mysql://127.0.0.1:3306/cdc_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+        run: mvn -B -ntp clean verify

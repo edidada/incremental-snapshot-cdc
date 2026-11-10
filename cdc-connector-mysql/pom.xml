@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.example.cdc</groupId>
+        <artifactId>incremental-snapshot-cdc</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>cdc-connector-mysql</artifactId>
+    <packaging>jar</packaging>
+    <name>cdc-connector-mysql</name>
+    <description>
+        MySQL / JDBC implementations of the cdc-core SPIs: sampling-based chunk splitter,
+        chunk range SELECT reader, changelog reader, and a durable JDBC progress store.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.example.cdc</groupId>
+            <artifactId>cdc-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+    </dependencies>
+</project>
