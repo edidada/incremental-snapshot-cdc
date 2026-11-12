@@ -41,4 +41,53 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            GraalVM Native Image profile.
+
+            Activated with:  mvn -Pnative -pl cdc-core -am package
+            Requires a GraalVM JDK (with native-image) as the build JDK, e.g.:
+              export JAVA_HOME=<graalvm-jdk-21+>
+
+            Produces target/cdc-demo — a standalone native executable of the
+            self-verifying demo (IncrementalSnapshotDemo). The cdc-core engine
+            is deliberately reflection-free and dependency-free, so no reachability
+            metadata or native-image config files are needed (closed-world analysis
+            succeeds out of the box).
+        -->
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>0.10.6</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <mainClass>org.example.cdc.core.demo.IncrementalSnapshotDemo</mainClass>
+                            <imageName>cdc-demo</imageName>
+                            <buildArgs>
+                                <buildArg>-O3</buildArg>
+                                <buildArg>--gc=serial</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
+                                <!-- Fail fast on any reachability gap instead of building a fallback image -->
+                                <buildArg>--no-fallback</buildArg>
+                            </buildArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

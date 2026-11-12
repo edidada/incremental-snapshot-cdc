@@ -1,0 +1,74 @@
+name: GraalVM Native Image
+
+on:
+  push:
+    branches: [graalvm]
+  pull_request:
+    branches: [main, graalvm]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Native Image build & perf comparison
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # GraalVM JDK provides both javac (for mvn package) and native-image.
+      - name: Set up GraalVM JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: graalvm
+          java-version: '21'
+          cache: maven
+
+      # Verify the JVM-mode tests still pass under the GraalVM JDK before
+      # spending ~3-5 min on the AOT build.
+      - name: Build and test (JVM mode, GraalVM JDK)
+        run: mvn -B -ntp clean verify
+
+      # AOT-compile the demo into target/cdc-demo (Linux ELF executable).
+      - name: Build native image
+        run: mvn -B -ntp -Pnative -pl cdc-core -am package -DskipTests
+
+      - name: Run native demo (self-verifying)
+        run: ./cdc-core/target/cdc-demo
+
+      # JVM baseline vs native: startup latency is the headline GraalVM win.
+      - name: Benchmark JVM startup (5 runs)
+        run: |
+          for i in 1 2 3 4 5; do
+            /usr/bin/time -f "%e s" java -cp cdc-core/target/classes \
+              org.example.cdc.core.demo.IncrementalSnapshotDemo > /dev/null 2>/tmp/jvm_$i.txt
+            echo "JVM run $i: $(cat /tmp/jvm_$i.txt)"
+          done
+
+      - name: Benchmark native startup (5 runs)
+        run: |
+          for i in 1 2 3 4 5; do
+            /usr/bin/time -f "%e s" ./cdc-core/target/cdc-demo > /dev/null 2>/tmp/native_$i.txt
+            echo "Native run $i: $(cat /tmp/native_$i.txt)"
+          done
+
+      - name: Report sizes
+        run: |
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo '- Native image: `ls -lh cdc-core/target/cdc-demo`' >> $GITHUB_STEP_SUMMARY
+          ls -lh cdc-core/target/cdc-demo >> $GITHUB_STEP_SUMMARY || true
+          echo '- Fat jar (JVM mode):' >> $GITHUB_STEP_SUMMARY
+          ls -lh cdc-core/target/cdc-core-*.jar >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdc-demo-native-linux
+          path: cdc-core/target/cdc-demo
+          if-no-files-found: error
