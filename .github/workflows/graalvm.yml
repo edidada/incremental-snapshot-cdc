@@ -20,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # GraalVM JDK provides both javac (for mvn package) and native-image.
       - name: Set up GraalVM JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: graalvm
           java-version: '21'
@@ -67,7 +67,7 @@ jobs:
           ls -lh cdc-core/target/cdc-core-*.jar >> $GITHUB_STEP_SUMMARY || true
 
       - name: Upload native binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cdc-demo-native-linux
           path: cdc-core/target/cdc-demo
